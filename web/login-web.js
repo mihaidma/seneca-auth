@@ -1,130 +1,124 @@
-;(function(angular){
-  "use strict";
+/*global _:false, angular:false*/
 
-  function empty(val) { return null == val || 0 == ''+val }
+;
+(function (angular) {
+  'use strict'
 
+  function empty (val) {
+    return null === val || 0 === '' + val
+  }
 
   var seneca = this.seneca || {}
-  var config = (seneca.config ? seneca.config.auth : null ) || { prefix:'/seneca', redirects:[] }
+  var config = (seneca.config ? seneca.config.auth : null) || {prefix: '/seneca', redirects: []}
 
-  _.each(config.redirects,function(r,p){config.redirects[p+'/']=r})
+  _.each(config.redirects, function (r, p) {
+    config.redirects[p + '/'] = r
+  })
 
-  var senecaLoginModule = angular.module('senecaLoginModule',[])
+  var senecaLoginModule = angular.module('senecaLoginModule', [])
 
-  senecaLoginModule.controller('Main', function($scope,$window) {
+  senecaLoginModule.controller('Main', function ($scope, $window) {
     $scope.show_login = true
     $scope.title = config.redirects[$window.location.pathname].title
   })
-
-
 
   var msgmap = {
     'unknown': 'Unable to perform your request at this time - please try again later.',
     'missing-fields': 'Please enter the missing fields.',
     'user-not-found': 'That username is not recognized.',
-    'invalid-password': 'That password is incorrect',
+    'invalid-password': 'That password is incorrect'
   }
 
-
   // TODO: should not need to do this manually
-  senecaLoginModule.service('auth', function($http,$window) {
+  senecaLoginModule.service('auth', function ($http, $window) {
     return {
-      login: function(creds,win,fail){
-        $http({method:'POST', url: '/auth/login', data:creds, cache:false}).
-          success(function(data, status) {
-            if( win ) return win(data);
+      login: function (creds, win, fail) {
+        $http({method: 'POST', url: '/auth/login', data: creds, cache: false})
+        .success(function (data, status) {
+          if (win) return win(data)
 
-            return $window.location.href = config.redirects[$window.location.pathname].redirect
-          }).
-          error(function(data, status) {
-            if( fail ) return fail(data);
-          })
+          return $window.location.href = config.redirects[$window.location.pathname].redirect
+        })
+        .error(function (data, status) {
+          if (fail) return fail(data)
+        })
       },
 
-      instance: function(win,fail){
-        $http({method:'GET', url: '/auth/instance', cache:false}).
-          success(function(data, status) {
-            if( win ) return win(data);
-          }).
-          error(function(data, status) {
-            if( fail ) return fail(data);
+      instance: function (win, fail) {
+        $http({method: 'GET', url: '/auth/instance', cache: false})
+          .success(function (data, status) {
+            if (win) return win(data)
           })
-      },
-
+          .error(function (data, status) {
+            if (fail) return fail(data)
+          })
+      }
     }
   })
 
-
-
-  senecaLoginModule.controller('Login', function($scope, $rootScope, $window, auth) {
-
-    function read() {
+  senecaLoginModule.controller('Login', function ($scope, $rootScope, $window, auth) {
+    function read () {
       return {
-        nick:     !empty($scope.input_nick),
+        nick: !empty($scope.input_nick),
         password: !empty($scope.input_password)
       }
     }
-    
 
-    function markinput(state,exclude) {
-      _.each( state, function( full, field ){
-        if( exclude && exclude[field] ) return;
-        $scope['seek_'+field] = !full
+    function markinput (state, exclude) {
+      _.each(state, function (full, field) {
+        if (exclude && exclude[field]) return
+        $scope['seek_' + field] = !full
       })
 
       $scope.seek_signin = !state.nick || !state.password
     }
 
-
-
-    function perform_signin() {
+    function perform_signin () {
       auth.login({
-        nick:$scope.input_nick,
-        password:$scope.input_password
-      }, null, function( out ){
+        nick: $scope.input_nick,
+        password: $scope.input_password
+      }, null, function (out) {
         $scope.msg = msgmap[out.why] || msgmap.unknown
         $scope.showmsg = true
-        if( 'user-not-found' == out.why ) $scope.seek_nick = true;
-        if( 'invalid-password' == out.why ) $scope.seek_password = true;
+        if ('user-not-found' === out.why) $scope.seek_nick = true
+        if ('invalid-password' === out.why) $scope.seek_password = true
       })
     }
 
     var visible = {
-      nick:true,
-      password:true,
-      signin:true,
+      nick: true,
+      password: true,
+      signin: true
     }
 
+    function show (fademap) {
+      _.each(fademap, function (active, name) {
+        $scope['hide_' + name] = !active
 
-    function show(fademap) {
-      _.each( fademap, function(active,name){
-        $scope['hide_'+name]=!active
-
-        if( active && !visible[name] ) {
-          visible[name]           = true
-          $scope['fadeout_'+name] = false
-          $scope['fadein_'+name]  = true
+        if (active && !visible[name]) {
+          visible[name] = true
+          $scope['fadeout_' + name] = false
+          $scope['fadein_' + name] = true
         }
 
-        if( !active && visible[name] ) {
-          visible[name]           = false
-          $scope['fadein_'+name]  = false
-          $scope['fadeout_'+name] = true
+        if (!active && visible[name]) {
+          visible[name] = false
+          $scope['fadein_' + name] = false
+          $scope['fadeout_' + name] = true
         }
-      })      
+      })
     }
 
-
-    $scope.signin = function() {
+    $scope.signin = function () {
       $scope.showmsg = false
 
       var state = read()
 
-      if( $scope.signin_hit ) {
-        markinput(state,{nick:1})
+      if ($scope.signin_hit) {
+        markinput(state, {nick: 1})
       }
 
-      if( state.nick && state.password ) {
+      if (state.nick && state.password) {
         perform_signin()
       }
       else {
@@ -136,18 +130,13 @@
       $scope.mode = 'signin'
     }
 
-
-
-
-    $scope.change = function( field ) {
-      if( $scope.signin_hit ) return markinput(read());
+    $scope.change = function (field) {
+      if ($scope.signin_hit) return markinput(read())
     }
 
-
-    $scope.loginredirect = function() {
+    $scope.loginredirect = function () {
       return $window.location.href = config.redirects[$window.location.pathname].redirect
     }
-
 
     $scope.mode = 'none'
     $scope.user = null
@@ -164,13 +153,10 @@
 
     $scope.hasuser = !!$scope.user
 
-    auth.instance(function(out){
+    auth.instance(function (out) {
       $scope.user = out.user
       $scope.hasuser = !!$scope.user
-      $rootScope.$emit('instance',{user:out.user})
+      $rootScope.$emit('instance', {user: out.user})
     })
   })
-
-}).call(this,angular);
-
-
+}).call(this, angular)
